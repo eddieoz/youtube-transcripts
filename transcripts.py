@@ -1,9 +1,12 @@
+import subprocess
 import sqlite3
 from sqlite3 import Error
-import youtube_transcript_api
 from youtube_transcript_api import YouTubeTranscriptApi
-from pytube import YouTube, Channel
+import yt_dlp
+import json
 import re
+
+
 
 conn = None
 try:
@@ -12,54 +15,82 @@ try:
 except Error as e:
     print (e)
 
-### Configure channel from where it will collect all transcriptions
-channel = 'UCN_h_1w3ofp1qMgrwcnaykw'
-c = Channel('https://www.youtube.com/channel/'+channel)
+channel = "https://www.youtube.com/channel/UCN_h_1w3ofp1qMgrwcnaykw"
 
-for url in c.video_urls:
-    yt = YouTube(url)
-    print(url)
-    if not yt.caption_tracks:
-        print("Video %s sem caption" % (url))
-        continue
+command = [f"yt-dlp --flat-playlist --print id '{channel}'"]
+output_urls = subprocess.run(['yt-dlp', '--flat-playlist', '--print', 'id', f'{channel}'], capture_output=True, text=True)
 
-    ## Configure to get langs
-    if yt.caption_tracks[0].code == 'a.pt':
-        lang_code = 'pt'
-    elif yt.caption_tracks[0].code == 'a.en':
-        lang_code = 'en'
-    else:
-        print("Video %s caption found, but not pt or en" % (url))
-        continue
-    processed = conn.execute("select count(url) from processed where url='"+str(url)+"'")
+video_id_list = [line.strip() for line in output_urls.stdout.split('\n')]
+
+count = 0
+for video_id in video_id_list:
+    count+=1
+    # print(f"{count}: https://www.youtube.com/watch?v={url}")
+    full_url = f"https://www.youtube.com/watch?v={video_id}"
+    processed = conn.execute(f"select count(url) from processed where url='{full_url}'")
     for row in processed:
         if row[0] == 0:
             try:
-                transcript_list = YouTubeTranscriptApi.list_transcripts(yt.video_id)
-                if (transcript_list != None):
-                    transcript = YouTubeTranscriptApi.get_transcript(yt.video_id, languages=[lang_code])
-
-                    for line in transcript:
-                        print (line)
-                        print (yt.title)
-                        print (line["text"])
-                        print (line["start"])
-                        url_time = url + "&t="+str(int(line["start"]))
-                        print (url_time)
-                        try:
-                            conn.execute("insert into transcripts (title, url, description) values ('" + re.sub('[\'\"!@#$&]+','',str(line["text"])) + "','" + str(url_time) + "','" + re.sub('[\'\"!@#$&]+','',str(yt.title)) +"')")
-                        except Error as e:
-                            print(e)
+                ydl_opts = {}
+                info = {}
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    full_info = ydl.extract_info(url=full_url, download=False, )
+                    info = json.loads(json.dumps(ydl.sanitize_info(full_info)))
+                print (f"ID: {video_id} Subtitles: {info.get('subtitles', {})} Languages {info.get('language')}")
+                # if (info.get('subtitles', {})) or (info.get('language') is not None and info.get('language') in ["en", "pt", "pt-BR", "en-US"]):
+                if (info.get('language') in ["en", "pt", "pt-BR", "en-US"]):
+                    # print(json.dumps(ydl.sanitize_info(full_info)))
                     try:
-                        conn.execute("insert into processed (url) values ('"+str(url)+"')") 
+                        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+                        if (transcript_list is not None):
+                            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["en", "pt", "pt-BR", "en-US"])
+
+                            buffer = []
+                            first_timestamp = None
+                            for i, line in enumerate(transcript):
+                                if i % 60 == 0 and buffer:
+                                    concatenated_text = " ".join([l["text"] for l in buffer])
+                                    url_time = full_url + "&t=" + str(int(first_timestamp))
+                                    try:
+                                        conn.execute("insert into transcripts (title, url, description) values (?, ?, ?)", 
+                                                     (re.sub(r'[\'\"!@#$&]+', '', concatenated_text), url_time, re.sub(r'[\'\"!@#$&]+', '', info['title'])))
+                                    except Error as e:
+                                        print(e)
+                                    buffer = []
+                                    # print(info['title'])
+                                    # print(url_time)
+                                    # print(concatenated_text)
+                                
+                                if not buffer:
+                                    first_timestamp = line["start"]
+                                
+                                buffer.append(line)
+                            
+                            if buffer:
+                                concatenated_text = " ".join([l["text"] for l in buffer])
+                                url_time = full_url + "&t=" + str(int(first_timestamp))
+                                try:
+                                    conn.execute("insert into transcripts (title, url, description) values (?, ?, ?)", 
+                                                 (re.sub(r'[\'\"!@#$&]+', '', concatenated_text), url_time, re.sub(r'[\'\"!@#$&]+', '', info['title'])))
+                                except Error as e:
+                                    print(e)
+                                # print(info['title'])
+                                # print(url_time)
+                                # print(concatenated_text)
+
+                            try:
+                                conn.execute("insert into processed (url) values (?)", (full_url,))
+                            except Error as e:
+                                print(e)
+                            conn.commit()
                     except Error as e:
                         print(e)
-                    conn.commit()
 
             except Error as e:
                 print(e)
-        else:
-            print("video %s already processed" % (url))
+        # else:
+        #     print("video %s already processed" % (full_url))
+
 print ("Records created successfully")
 conn.close()
 

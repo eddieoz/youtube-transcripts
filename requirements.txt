@@ -2,3 +2,4 @@ youtube_transcript_api
 pytube
 sqlite3
 re
+yt-dlp
