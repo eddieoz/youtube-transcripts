@@ -53,7 +53,7 @@ for video_id in video_id_list:
                                     url_time = full_url + "&t=" + str(int(first_timestamp))
                                     try:
                                         conn.execute("insert into transcripts (title, url, description) values (?, ?, ?)", 
-                                                     (re.sub(r'[\'\"!@#$&]+', '', concatenated_text), url_time, re.sub(r'[\'\"!@#$&]+', '', info['title'])))
+                                                     (re.sub(r'[\'\"!@#$&]+', '', info['title']), url_time, re.sub(r'[\'\"!@#$&]+', '', concatenated_text)))
                                     except Error as e:
                                         print(e)
                                     buffer = []
@@ -71,7 +71,7 @@ for video_id in video_id_list:
                                 url_time = full_url + "&t=" + str(int(first_timestamp))
                                 try:
                                     conn.execute("insert into transcripts (title, url, description) values (?, ?, ?)", 
-                                                 (re.sub(r'[\'\"!@#$&]+', '', concatenated_text), url_time, re.sub(r'[\'\"!@#$&]+', '', info['title'])))
+                                                 (re.sub(r'[\'\"!@#$&]+', '', info['title']), url_time, re.sub(r'[\'\"!@#$&]+', '', concatenated_text)))
                                 except Error as e:
                                     print(e)
                                 # print(info['title'])
