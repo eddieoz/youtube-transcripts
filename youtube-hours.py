@@ -24,7 +24,7 @@ channel_ids = [
 ]
 for channel_id in channel_ids:
 
-    command = f"yt-dlp --get-id --sleep-interval 3 --max-sleep-interval 10 --get-duration https://www.youtube.com/channel/{channel_id}"
+    command = f"yt-dlp --get-id --sleep-interval 5 --max-sleep-interval 10 --get-duration https://www.youtube.com/channel/{channel_id}"
 
     # Running the command
     output, error, return_code = run_command(command)
@@ -78,10 +78,14 @@ for channel_id in channel_ids:
     # Print the results
     total_days = total_duration.days
     total_hours = (total_duration.seconds // 3600) + (total_days * 24)
-
-for i, (channel_id, total_duration, video_count) in enumerate(
-    zip(channel_ids, total_durations, video_counts)
-):
-    print(f"Channel {i+1} ({channel_id}):")
+    print(f"Channel ({channel_id}):")
     print(f"Total duration: {total_duration} ({total_days} days, {total_hours} hours)")
     print(f"Video count: {video_count}")
+
+
+# for i, (channel_id, total_duration, video_count) in enumerate(
+#     zip(channel_ids, total_durations, video_counts)
+# ):
+#     print(f"Channel {i+1} ({channel_id}):")
+#     print(f"Total duration: {total_duration} ({total_days} days, {total_hours} hours)")
+#     print(f"Video count: {video_count}")
