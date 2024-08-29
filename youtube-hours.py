@@ -1,3 +1,12 @@
+"""
+This script calculates the total duration of videos from multiple YouTube channels.
+It uses the yt-dlp command-line tool to fetch video metadata, and then processes the output to calculate the total time.
+
+USAGE: Add the channel ids in the channels list below.
+
+Note: You need to have yt-dlp installed and available in your system's PATH.
+"""
+
 import subprocess
 import re
 from datetime import timedelta
@@ -12,16 +21,16 @@ def run_command(command):
     return out.decode("utf-8"), err.decode("utf-8"), process.returncode
 
 
-# Replace with multiple channel IDs (e.g., UCzwLEvNi0__N9BHbgTqJKeQ, UCN_h_1w3ofp1qMgrwcnaykw)
-
 total_durations = []
 video_counts = []
 
+# Replace with multiple channel IDs (e.g., UCzwLEvNi0__N9BHbgTqJKeQ, UCN_h_1w3ofp1qMgrwcnaykw)
 channel_ids = [
     "UCzwLEvNi0__N9BHbgTqJKeQ",
     "UCN_h_1w3ofp1qMgrwcnaykw",
     "UC0JADezsbV-CWlDscvVOT3g",
 ]
+
 for channel_id in channel_ids:
 
     command = f"yt-dlp --get-id --sleep-interval 5 --max-sleep-interval 10 --get-duration https://www.youtube.com/channel/{channel_id}"
