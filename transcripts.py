@@ -5,6 +5,8 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import yt_dlp
 import json
 import re
+import time
+
 
 
 
@@ -17,8 +19,8 @@ except Error as e:
 
 channel = "https://www.youtube.com/channel/UCN_h_1w3ofp1qMgrwcnaykw"
 
-command = [f"yt-dlp --flat-playlist --print id '{channel}'"]
-output_urls = subprocess.run(['yt-dlp', '--flat-playlist', '--print', 'id', f'{channel}'], capture_output=True, text=True)
+command = [f"yt-dlp --sleep-interval 5 --max-sleep-interval 10 --flat-playlist --print id '{channel}'"]
+output_urls = subprocess.run(['yt-dlp', '--sleep-interval', '5', '--max-sleep-interval', '10', '--flat-playlist', '--print', 'id', f'{channel}'], capture_output=True, text=True)
 
 video_id_list = [line.strip() for line in output_urls.stdout.split('\n')]
 
@@ -42,8 +44,11 @@ for video_id in video_id_list:
                     # print(json.dumps(ydl.sanitize_info(full_info)))
                     try:
                         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+                        time.sleep(1)  # Add a sleep for 1 second
+                        
                         if (transcript_list is not None):
                             transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["en", "pt", "pt-BR", "en-US"])
+                            time.sleep(1)  # Add a sleep for 1 second
 
                             buffer = []
                             first_timestamp = None
